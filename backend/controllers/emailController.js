@@ -1,5 +1,6 @@
 const Email = require('../models/Email');
 const AIService = require('../services/aiService');
+const mailService = require('../services/mailService');
 
 // ═══════════════════════════════════════════════════════════════
 // EMAIL CONTROLLER - REST API Handlers
@@ -40,7 +41,7 @@ exports.getEmails = async (req, res) => {
     // Smart sorting: high priority → medium → low, then by date
     let sort;
     if (sortBy === 'smart') {
-      sort = { priorityScore: -1, createdAt: -1 };
+      sort = { createdAt: -1, priorityScore: -1 };
     } else if (sortBy === 'date') {
       sort = { createdAt: -1 };
     } else if (sortBy === 'sentiment') {
@@ -170,21 +171,38 @@ exports.deleteEmail = async (req, res) => {
 
 /**
  * POST /api/emails/:id/reply
- * Mark email as replied
+ * Mark email as replied and optionally send real email via Nodemailer
  */
 exports.replyToEmail = async (req, res) => {
   try {
+    const { replyText, subject } = req.body;
     const email = await Email.findById(req.params.id);
+    
     if (!email) {
       return res.status(404).json({ success: false, error: 'Email not found' });
+    }
+
+    // If replyText is provided, send a real email
+    if (replyText) {
+      const emailSubject = subject || `Re: ${email.subject}`;
+      await mailService.sendEmail(
+        email.from.email,
+        emailSubject,
+        replyText
+      );
     }
 
     email.status = 'replied';
     email.repliedAt = new Date();
     await email.save();
 
-    res.json({ success: true, data: email });
+    res.json({ 
+      success: true, 
+      data: email, 
+      message: replyText ? 'Real email sent successfully' : 'Marked as replied' 
+    });
   } catch (error) {
+    console.error('Reply Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

@@ -7,7 +7,7 @@ import {
   HiOutlineEmojiHappy, HiOutlineEmojiSad
 } from 'react-icons/hi';
 
-function Sidebar({ unreadCount, highPriorityCount, onCompose }) {
+function Sidebar({ unreadCount, highPriorityCount, mediumPriorityCount, lowPriorityCount, onCompose }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,11 +62,13 @@ function Sidebar({ unreadCount, highPriorityCount, onCompose }) {
         <button className={`sidebar-link ${location.pathname === '/emails/priority/medium' ? 'active' : ''}`} onClick={() => navigate('/emails/priority/medium')}>
           <span className="sidebar-link-icon"><HiOutlineMinus /></span>
           Medium Priority
+          {mediumPriorityCount > 0 && <span className="sidebar-link-badge medium">{mediumPriorityCount}</span>}
         </button>
 
         <button className={`sidebar-link ${location.pathname === '/emails/priority/low' ? 'active' : ''}`} onClick={() => navigate('/emails/priority/low')}>
           <span className="sidebar-link-icon"><HiOutlineArrowDown /></span>
           Low Priority
+          {lowPriorityCount > 0 && <span className="sidebar-link-badge low">{lowPriorityCount}</span>}
         </button>
 
         <div className="sidebar-section-title">Sentiment</div>

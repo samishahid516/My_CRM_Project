@@ -1,15 +1,21 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
 const emailRoutes = require('./routes/emailRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const imapService = require('./services/imapService');
+const socketService = require('./services/socket');
 
 const app = express();
 
 // Connect to MongoDB Atlas
 connectDB();
+
+const server = http.createServer(app);
+const io = socketService.init(server);
 
 // Middleware
 app.use(cors({
@@ -46,10 +52,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`\n🚀 ═══════════════════════════════════════════════`);
   console.log(`   CRM Email Intelligence API`);
   console.log(`   Running on port ${PORT}`);
   console.log(`   http://localhost:${PORT}`);
   console.log(`═══════════════════════════════════════════════════\n`);
+
+  // Start real email polling
+  imapService.startPolling();
 });
