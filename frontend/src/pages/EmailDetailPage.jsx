@@ -12,6 +12,8 @@ function EmailDetailPage({ onRefresh }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [replyText, setReplyText] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchEmail();
@@ -23,6 +25,7 @@ function EmailDetailPage({ onRefresh }) {
       const res = await getEmailById(id);
       if (res.data.success) {
         setEmail(res.data.data);
+        setReplyText(res.data.data.autoReply?.suggested || '');
       }
     } catch (err) {
       toast.error('Failed to load email');
@@ -43,16 +46,24 @@ function EmailDetailPage({ onRefresh }) {
     }
   };
 
-  const handleReply = async () => {
+  const handleReply = async (sendReal = false) => {
+    if (sendReal && !replyText) {
+      toast.error('Reply text cannot be empty');
+      return;
+    }
+
+    setSendingEmail(sendReal);
     try {
-      const res = await replyToEmail(id);
+      const res = await replyToEmail(id, sendReal ? { replyText } : {});
       if (res.data.success) {
         setEmail(res.data.data);
-        toast.success('Marked as replied!');
+        toast.success(sendReal ? 'Real email sent successfully!' : 'Marked as replied!');
         onRefresh();
       }
     } catch (err) {
-      toast.error('Failed to mark as replied');
+      toast.error(sendReal ? 'Failed to send real email. Check backend logs & .env' : 'Failed to mark as replied');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -280,11 +291,26 @@ function EmailDetailPage({ onRefresh }) {
                   </div>
                   <div className="ai-autoreply-actions">
                     <button className="btn btn-primary" onClick={copyAutoReply}>
-                      <HiOutlineClipboardCopy /> Copy Reply
+                      <HiOutlineClipboardCopy /> Copy
                     </button>
-                    <button className="btn btn-secondary" onClick={handleReply}>
-                      <HiOutlineReply /> Use & Send
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => handleReply(true)}
+                      disabled={sendingEmail}
+                    >
+                      <HiOutlineReply /> 
+                      {sendingEmail ? 'Sending...' : 'Send Real Email'}
                     </button>
+                  </div>
+                  
+                  <div style={{ marginTop: '16px' }}>
+                    <textarea
+                      className="form-textarea"
+                      style={{ minHeight: '120px', fontSize: '0.8rem' }}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Edit your reply here..."
+                    />
                   </div>
                 </div>
               )}

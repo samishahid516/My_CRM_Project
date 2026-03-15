@@ -15,7 +15,7 @@ export const getEmailById = (id) => api.get(`/emails/${id}`);
 export const createEmail = (data) => api.post('/emails', data);
 export const updateEmail = (id, data) => api.put(`/emails/${id}`, data);
 export const deleteEmail = (id) => api.delete(`/emails/${id}`);
-export const replyToEmail = (id) => api.post(`/emails/${id}/reply`);
+export const replyToEmail = (id, data) => api.post(`/emails/${id}/reply`, data);
 export const analyzeEmail = (id) => api.post(`/emails/${id}/analyze`);
 export const toggleStar = (id) => api.post(`/emails/${id}/star`);
 
