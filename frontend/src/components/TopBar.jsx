@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { HiOutlineSearch, HiOutlineBell, HiOutlineCog, HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineBell, HiOutlineCog, HiOutlineSun, HiOutlineMoon, HiOutlineMenu } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
-function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNotifications, theme, toggleTheme }) {
+function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNotifications, theme, toggleTheme, toggleSidebar }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
 
   const handleNotificationClick = (emailId) => {
     setShowNotifications(false);
+    if (window.innerWidth < 1024) toggleSidebar(); 
     navigate(`/emails/${emailId}`);
     // Optional: filter out the clicked notification
     setNotifications(prev => prev.filter(n => n.id !== emailId));
@@ -15,14 +16,19 @@ function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNo
 
   return (
     <header className="topbar">
-      <div className="topbar-search">
-        <HiOutlineSearch className="topbar-search-icon" />
-        <input
-          type="text"
-          placeholder="Search emails by sender, subject, or content..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="topbar-left-wrapper">
+        <button className="mobile-menu-btn" onClick={toggleSidebar}>
+          <HiOutlineMenu />
+        </button>
+        <div className="topbar-search">
+          <HiOutlineSearch className="topbar-search-icon" />
+          <input
+            type="text"
+            placeholder="Search emails..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="topbar-actions">

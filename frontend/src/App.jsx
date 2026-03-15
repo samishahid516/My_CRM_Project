@@ -21,6 +21,7 @@ function App() {
   const [lowPriorityCount, setLowPriorityCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -29,6 +30,10 @@ function App() {
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
   useEffect(() => {
@@ -95,6 +100,8 @@ function App() {
           mediumPriorityCount={mediumPriorityCount}
           lowPriorityCount={lowPriorityCount}
           onCompose={() => setShowCompose(true)}
+          isOpen={sidebarOpen}
+          toggleSidebar={toggleSidebar}
         />
         <div className="main-content">
           <TopBar 
@@ -105,6 +112,7 @@ function App() {
             setNotifications={setNotifications}
             theme={theme}
             toggleTheme={toggleTheme}
+            toggleSidebar={toggleSidebar}
           />
           <Routes>
             <Route path="/" element={<Dashboard onViewEmail={() => {}} />} />
@@ -135,6 +143,7 @@ function App() {
             },
           }}
         />
+        {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
       </div>
     </Router>
   );
