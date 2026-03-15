@@ -5,6 +5,7 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 const emailRoutes = require('./routes/emailRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const imapService = require('./services/imapService');
 
 const app = express();
 
@@ -52,4 +53,7 @@ app.listen(PORT, () => {
   console.log(`   Running on port ${PORT}`);
   console.log(`   http://localhost:${PORT}`);
   console.log(`═══════════════════════════════════════════════════\n`);
+
+  // Start real email polling
+  imapService.startPolling();
 });
