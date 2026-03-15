@@ -2,6 +2,7 @@ const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 const Email = require('../models/Email');
 const AIService = require('./aiService');
+const socketService = require('./socket');
 require('dotenv').config();
 
 // ═══════════════════════════════════════════════════════════════
@@ -79,6 +80,15 @@ class IMAPService {
 
               await newEmail.save();
               console.log(`✅ Saved & Analyzed: ${emailData.subject}`);
+
+              // Emit socket notification
+              socketService.sendNotification('new-email', {
+                id: newEmail._id,
+                from: newEmail.from,
+                subject: newEmail.subject,
+                sentiment: newEmail.sentiment,
+                priority: newEmail.priority
+              });
             }
 
             // Mark as seen on the server

@@ -9,6 +9,8 @@ import EmailDetailPage from './pages/EmailDetailPage';
 import Analytics from './pages/Analytics';
 import ComposeModal from './components/ComposeModal';
 import { getAnalytics } from './services/api';
+import { io } from 'socket.io-client';
+import toast from 'react-hot-toast';
 
 function App() {
   const [showCompose, setShowCompose] = useState(false);
@@ -18,6 +20,50 @@ function App() {
 
   useEffect(() => {
     fetchCounts();
+
+    // Initialize Socket Connection
+    const socket = io('http://localhost:5000', {
+      withCredentials: true
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 Connected to Notification Server');
+    });
+
+    socket.on('new-email', (data) => {
+      console.log('✉️ New Email via Socket:', data);
+      fetchCounts(); // Refresh badges
+      
+      // Multi-line toast for better UX
+      toast((t) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {data.priority === 'high' ? '🔴' : '✉️'} New Email
+          </div>
+          <div style={{ fontSize: '0.85rem' }}>
+            From: <b>{data.from.name}</b>
+          </div>
+          <div style={{ fontSize: '0.8rem', opacity: 0.8 }} className="truncate">
+            {data.subject}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <span className={`badge badge-${data.sentiment}`} style={{ fontSize: '0.65rem' }}>
+              {data.sentiment}
+            </span>
+            <span className={`badge badge-${data.priority}`} style={{ fontSize: '0.65rem' }}>
+              {data.priority}
+            </span>
+          </div>
+        </div>
+      ), {
+        duration: 5000,
+        icon: '🤖',
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const fetchCounts = async () => {
