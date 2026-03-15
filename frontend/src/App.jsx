@@ -17,6 +17,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [highPriorityCount, setHighPriorityCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     fetchCounts();
@@ -33,32 +34,19 @@ function App() {
     socket.on('new-email', (data) => {
       console.log('✉️ New Email via Socket:', data);
       fetchCounts(); // Refresh badges
-      
-      // Multi-line toast for better UX
-      toast((t) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {data.priority === 'high' ? '🔴' : '✉️'} New Email
-          </div>
-          <div style={{ fontSize: '0.85rem' }}>
-            From: <b>{data.from.name}</b>
-          </div>
-          <div style={{ fontSize: '0.8rem', opacity: 0.8 }} className="truncate">
-            {data.subject}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            <span className={`badge badge-${data.sentiment}`} style={{ fontSize: '0.65rem' }}>
-              {data.sentiment}
-            </span>
-            <span className={`badge badge-${data.priority}`} style={{ fontSize: '0.65rem' }}>
-              {data.priority}
-            </span>
-          </div>
-        </div>
-      ), {
-        duration: 5000,
-        icon: '🤖',
-      });
+
+      // Add to notifications list
+      setNotifications(prev => [
+        {
+          id: data.id,
+          from: data.from.name,
+          subject: data.subject,
+          priority: data.priority,
+          sentiment: data.sentiment,
+          time: new Date()
+        },
+        ...prev
+      ].slice(0, 5)); // Keep last 5
     });
 
     return () => {
@@ -92,6 +80,8 @@ function App() {
             searchQuery={searchQuery} 
             setSearchQuery={setSearchQuery}
             unreadCount={unreadCount}
+            notifications={notifications}
+            setNotifications={setNotifications}
           />
           <Routes>
             <Route path="/" element={<Dashboard onViewEmail={() => {}} />} />
