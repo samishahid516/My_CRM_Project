@@ -37,58 +37,53 @@ class IMAPService {
         user: process.env.IMAP_USER,
         pass: process.env.IMAP_PASS
       },
-      logger: false
+      logger: false,
+      connectionTimeout: 30000
     });
 
     try {
-      console.log('🚀 [IMAP] High-Speed Sync Started...');
+      console.log('⚡ [IMAP] Starting High-Speed Parallel Sync...');
       await client.connect();
       const lock = await client.getMailboxLock('INBOX');
       
       try {
-        const messages = await client.search({ seen: false });
-        console.log(`✉️ [IMAP] Found ${messages.length} pending emails. Processing in parallel...`);
+        const allUids = await client.search({ seen: false });
+        // Take the latest 100 to process "in seconds" and prevent session hang
+        const uids = allUids.slice(-100); 
+        console.log(`🔥 [IMAP] Found ${allUids.length} pending. Picking latest 100 for this cycle.`);
 
-        // Process in batches of 10 for maximum speed "in seconds"
-        const BATCH_SIZE = 10;
-        for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-          const batch = messages.slice(i, i + BATCH_SIZE);
+        const CHUNK_SIZE = 10; 
+        for (let i = 0; i < uids.length; i += CHUNK_SIZE) {
+          const chunk = uids.slice(i, i + CHUNK_SIZE);
           
-          await Promise.all(batch.map(async (uid) => {
+          await Promise.all(chunk.map(async (uid) => {
             try {
-              const messageStream = await client.fetchOne(uid, { source: true });
-              const parsed = await simpleParser(messageStream.source);
+              const msg = await client.fetchOne(uid, { source: true });
+              if (!msg || !msg.source) return;
 
-              const emailData = {
-                from: {
-                  name: he.decode(parsed.from?.value[0]?.name || parsed.from?.value[0]?.address?.split('@')[0] || 'Unknown'),
-                  email: parsed.from?.value[0]?.address
-                },
-                subject: he.decode(parsed.subject || '(No Subject)'),
-                body: he.decode(parsed.text || parsed.textAsHtml || '(No Content)').replace(/\r\n/g, '\n').trim(),
-                status: 'unread'
-              };
+              const parsed = await simpleParser(msg.source);
+              const subject = he.decode(parsed.subject || '(No Subject)');
+              const fromEmail = parsed.from?.value[0]?.address;
 
-              // Check DB
-              const exists = await Email.findOne({ 
-                'from.email': emailData.from.email,
-                subject: emailData.subject,
-                createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+              const exists = await Email.exists({ 
+                'from.email': fromEmail,
+                subject: subject,
+                createdAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) }
               });
 
               if (!exists) {
-                const analysis = AIService.analyzeEmail(emailData);
-                const newEmail = new Email({
-                  ...emailData,
-                  sentiment: analysis.sentiment,
-                  sentimentScore: analysis.sentimentScore,
-                  priority: analysis.priority,
-                  priorityScore: analysis.priorityScore,
-                  category: analysis.category,
-                  autoReply: analysis.autoReply,
-                  tags: analysis.tags
-                });
+                const emailData = {
+                  from: {
+                    name: he.decode(parsed.from?.value[0]?.name || fromEmail?.split('@')[0] || 'Unknown'),
+                    email: fromEmail
+                  },
+                  subject,
+                  body: he.decode(parsed.text || parsed.textAsHtml || '(No Content)').replace(/\r\n/g, '\n').trim(),
+                  status: 'unread'
+                };
 
+                const analysis = AIService.analyzeEmail(emailData);
+                const newEmail = new Email({ ...emailData, ...analysis });
                 await newEmail.save();
                 
                 socketService.sendNotification('new-email', {
@@ -98,25 +93,25 @@ class IMAPService {
                   sentiment: newEmail.sentiment,
                   priority: newEmail.priority
                 });
+                console.log(`  ✅ Synced: ${subject.substring(0, 30)}...`);
               }
 
-              // Mark as seen immediately
               await client.messageFlagsAdd(uid, ['\\Seen']);
             } catch (err) {
-              console.error(`❌ [IMAP] Batch Error (UID ${uid}):`, err.message);
+              console.error(`  ⚠️ [IMAP] Item Error (UID ${uid}):`, err.message);
             }
           }));
           
-          console.log(`📉 [IMAP] Progress: ${Math.min(i + BATCH_SIZE, messages.length)}/${messages.length} processed.`);
+          console.log(`🚀 [IMAP] Progress: ${i + chunk.length}/${uids.length} synced.`);
         }
       } finally {
         lock.release();
       }
 
       await client.logout();
-      console.log('✅ [IMAP] High-Speed Sync Complete.');
+      console.log('🏁 [IMAP] Sync Session Complete.');
     } catch (error) {
-      console.error('❌ [IMAP] Connection Error:', error.message);
+      console.error('❌ [IMAP] Sync Error:', error.message);
     } finally {
       this.isPollingActive = false;
     }
