@@ -1,5 +1,6 @@
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
+const he = require('he');
 const Email = require('../models/Email');
 const AIService = require('./aiService');
 const socketService = require('./socket');
@@ -58,11 +59,11 @@ class IMAPService {
 
             const emailData = {
               from: {
-                name: parsed.from?.value[0]?.name || parsed.from?.value[0]?.address?.split('@')[0] || 'Unknown',
+                name: he.decode(parsed.from?.value[0]?.name || parsed.from?.value[0]?.address?.split('@')[0] || 'Unknown'),
                 email: parsed.from?.value[0]?.address
               },
-              subject: parsed.subject || '(No Subject)',
-              body: parsed.text || parsed.textAsHtml || '(No Content)',
+              subject: he.decode(parsed.subject || '(No Subject)'),
+              body: he.decode(parsed.text || parsed.textAsHtml || '(No Content)').replace(/\r\n/g, '\n').trim(),
               status: 'unread'
             };
 

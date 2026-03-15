@@ -41,7 +41,7 @@ exports.getEmails = async (req, res) => {
     // Smart sorting: high priority → medium → low, then by date
     let sort;
     if (sortBy === 'smart') {
-      sort = { priorityScore: -1, createdAt: -1 };
+      sort = { createdAt: -1, priorityScore: -1 };
     } else if (sortBy === 'date') {
       sort = { createdAt: -1 };
     } else if (sortBy === 'sentiment') {

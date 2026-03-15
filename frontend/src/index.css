@@ -317,6 +317,14 @@ input, textarea, select {
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
+.sidebar-link-badge.medium {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.sidebar-link-badge.low {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
 /* ── Main Content ──────────────────────────────────────────── */
 .main-content {
   flex: 1;

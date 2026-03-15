@@ -17,6 +17,8 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [highPriorityCount, setHighPriorityCount] = useState(0);
+  const [mediumPriorityCount, setMediumPriorityCount] = useState(0);
+  const [lowPriorityCount, setLowPriorityCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -59,8 +61,15 @@ function App() {
       const res = await getAnalytics();
       if (res.data.success) {
         setUnreadCount(res.data.data.unreadCount || 0);
-        const highP = res.data.data.priorityDistribution?.find(p => p._id === 'high');
+        
+        const priorityDist = res.data.data.priorityDistribution || [];
+        const highP = priorityDist.find(p => p._id === 'high');
+        const mediumP = priorityDist.find(p => p._id === 'medium');
+        const lowP = priorityDist.find(p => p._id === 'low');
+        
         setHighPriorityCount(highP?.count || 0);
+        setMediumPriorityCount(mediumP?.count || 0);
+        setLowPriorityCount(lowP?.count || 0);
       }
     } catch (err) {
       console.log('Could not fetch counts');
@@ -73,6 +82,8 @@ function App() {
         <Sidebar 
           unreadCount={unreadCount} 
           highPriorityCount={highPriorityCount}
+          mediumPriorityCount={mediumPriorityCount}
+          lowPriorityCount={lowPriorityCount}
           onCompose={() => setShowCompose(true)}
         />
         <div className="main-content">
