@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { HiOutlineSearch, HiOutlineBell, HiOutlineCog } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineBell, HiOutlineCog, HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
-function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNotifications }) {
+function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNotifications, theme, toggleTheme }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
 
@@ -26,6 +26,11 @@ function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNo
       </div>
 
       <div className="topbar-actions">
+        {/* Theme Toggle */}
+        <button className="topbar-btn" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+          {theme === 'dark' ? <HiOutlineSun /> : <HiOutlineMoon />}
+        </button>
+
         <div className="notification-wrapper">
           <button 
             className={`topbar-btn ${showNotifications ? 'active' : ''}`}

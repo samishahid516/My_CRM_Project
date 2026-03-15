@@ -20,6 +20,16 @@ function App() {
   const [mediumPriorityCount, setMediumPriorityCount] = useState(0);
   const [lowPriorityCount, setLowPriorityCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   useEffect(() => {
     fetchCounts();
@@ -93,6 +103,8 @@ function App() {
             unreadCount={unreadCount}
             notifications={notifications}
             setNotifications={setNotifications}
+            theme={theme}
+            toggleTheme={toggleTheme}
           />
           <Routes>
             <Route path="/" element={<Dashboard onViewEmail={() => {}} />} />
