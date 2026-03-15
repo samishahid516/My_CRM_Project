@@ -25,46 +25,55 @@ class IMAPService {
   }
 
   async fetchNewEmails() {
-    try {
-      console.log('🔍 Checking for new emails...');
-      await this.client.connect();
+    if (this.isPollingActive) return;
+    this.isPollingActive = true;
 
-      // Select and lock the Inbox to prevent concurrent modifications
-      let lock = await this.client.getMailboxLock('INBOX');
+    // Create a NEW instance for every connection attempt to avoid "Can not re-use ImapFlow instance"
+    const client = new ImapFlow({
+      host: process.env.IMAP_HOST || 'imap.gmail.com',
+      port: parseInt(process.env.IMAP_PORT) || 993,
+      secure: true,
+      auth: {
+        user: process.env.IMAP_USER,
+        pass: process.env.IMAP_PASS
+      },
+      logger: false
+    });
+
+    try {
+      console.log('🔍 [IMAP] Checking for new emails...');
+      await client.connect();
+
+      const lock = await client.getMailboxLock('INBOX');
       
       try {
-        // Search for unread emails
-        const messages = await this.client.search({ seen: false });
-        
-        console.log(`✉️ Found ${messages.length} unread emails.`);
+        const messages = await client.search({ seen: false });
+        console.log(`✉️ [IMAP] Found ${messages.length} unread emails.`);
 
         for (const uid of messages) {
           try {
-            // Fetch the individual message stream
-            let messageStream = await this.client.fetchOne(uid, { source: true });
-            let parsed = await simpleParser(messageStream.source);
+            console.log(`📦 [IMAP] Fetching email UID: ${uid}`);
+            const messageStream = await client.fetchOne(uid, { source: true });
+            const parsed = await simpleParser(messageStream.source);
 
             const emailData = {
               from: {
-                name: parsed.from.value[0].name || parsed.from.value[0].address.split('@')[0],
-                email: parsed.from.value[0].address
+                name: parsed.from?.value[0]?.name || parsed.from?.value[0]?.address?.split('@')[0] || 'Unknown',
+                email: parsed.from?.value[0]?.address
               },
               subject: parsed.subject || '(No Subject)',
               body: parsed.text || parsed.textAsHtml || '(No Content)',
               status: 'unread'
             };
 
-            // Check if email already exists in DB to prevent duplicates
             const exists = await Email.findOne({ 
               'from.email': emailData.from.email,
               subject: emailData.subject,
-              createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Check last 24h
+              createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
             });
 
             if (!exists) {
-              console.log(`🤖 Analyzing email from: ${emailData.from.email}`);
-              
-              // Run AI analysis
+              console.log(`🤖 [IMAP] AI Analyzing new email: ${emailData.subject}`);
               const analysis = AIService.analyzeEmail(emailData);
 
               const newEmail = new Email({
@@ -79,9 +88,8 @@ class IMAPService {
               });
 
               await newEmail.save();
-              console.log(`✅ Saved & Analyzed: ${emailData.subject}`);
+              console.log(`✅ [IMAP] Saved to DB: ${emailData.subject}`);
 
-              // Emit socket notification
               socketService.sendNotification('new-email', {
                 id: newEmail._id,
                 from: newEmail.from,
@@ -89,41 +97,35 @@ class IMAPService {
                 sentiment: newEmail.sentiment,
                 priority: newEmail.priority
               });
+            } else {
+              console.log(`⏭️ [IMAP] Skipping duplicate: ${emailData.subject}`);
             }
 
-            // Mark as seen on the server
-            await this.client.messageFlagsAdd(uid, ['\\Seen']);
+            await client.messageFlagsAdd(uid, ['\\Seen']);
             
           } catch (itemError) {
-            console.error(`❌ Error processing email UID ${uid}:`, itemError.message);
+            console.error(`❌ [IMAP] Item Error (UID ${uid}):`, itemError.message);
           }
         }
       } finally {
-        // Release the lock
         lock.release();
       }
 
-      await this.client.logout();
+      await client.logout();
     } catch (error) {
-      console.error('❌ IMAP Error:', error.message);
-      // Ensure we logout even on error
-      try { await this.client.logout(); } catch(e) {}
+      console.error('❌ [IMAP] Connection Error:', error.message);
+    } finally {
+      this.isPollingActive = false;
     }
   }
 
   startPolling() {
-    if (this.isPolling) return;
-    this.isPolling = true;
-    
+    this.isPollingActive = false;
     const interval = parseInt(process.env.IMAP_POLL_INTERVAL) || 60000;
-    console.log(`🚀 Starting IMAP Poller (Interval: ${interval}ms)`);
+    console.log(`🚀 [IMAP] Poller Started (Interval: ${interval}ms)`);
     
-    // Immediate first run
     this.fetchNewEmails();
-
-    setInterval(() => {
-      this.fetchNewEmails();
-    }, interval);
+    setInterval(() => this.fetchNewEmails(), interval);
   }
 }
 
