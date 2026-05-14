@@ -45,17 +45,17 @@ class IMAPService {
       console.log('⚡ [IMAP] Starting High-Speed Parallel Sync...');
       await client.connect();
       const lock = await client.getMailboxLock('INBOX');
-      
+
       try {
         const allUids = await client.search({ seen: false });
         // Take the latest 100 to process "in seconds" and prevent session hang
-        const uids = allUids.slice(-100); 
+        const uids = allUids.slice(-100);
         console.log(`🔥 [IMAP] Found ${allUids.length} pending. Picking latest 100 for this cycle.`);
 
-        const CHUNK_SIZE = 10; 
+        const CHUNK_SIZE = 10;
         for (let i = 0; i < uids.length; i += CHUNK_SIZE) {
           const chunk = uids.slice(i, i + CHUNK_SIZE);
-          
+
           await Promise.all(chunk.map(async (uid) => {
             try {
               const msg = await client.fetchOne(uid, { source: true });
@@ -65,7 +65,7 @@ class IMAPService {
               const subject = he.decode(parsed.subject || '(No Subject)');
               const fromEmail = parsed.from?.value[0]?.address;
 
-              const exists = await Email.exists({ 
+              const exists = await Email.exists({
                 'from.email': fromEmail,
                 subject: subject,
                 createdAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) }
@@ -85,7 +85,7 @@ class IMAPService {
                 const analysis = AIService.analyzeEmail(emailData);
                 const newEmail = new Email({ ...emailData, ...analysis });
                 await newEmail.save();
-                
+
                 socketService.sendNotification('new-email', {
                   id: newEmail._id,
                   from: newEmail.from,
@@ -101,7 +101,7 @@ class IMAPService {
               console.error(`  ⚠️ [IMAP] Item Error (UID ${uid}):`, err.message);
             }
           }));
-          
+
           console.log(`🚀 [IMAP] Progress: ${i + chunk.length}/${uids.length} synced.`);
         }
       } finally {
@@ -121,7 +121,7 @@ class IMAPService {
     this.isPollingActive = false;
     const interval = parseInt(process.env.IMAP_POLL_INTERVAL) || 60000;
     console.log(`🚀 [IMAP] Poller Started (Interval: ${interval}ms)`);
-    
+
     this.fetchNewEmails();
     setInterval(() => this.fetchNewEmails(), interval);
   }
