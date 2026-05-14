@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { HiOutlineSearch, HiOutlineBell, HiOutlineCog, HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineBell, HiOutlineCog, HiOutlineMenu } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
-function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNotifications, theme, toggleTheme }) {
+function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNotifications, toggleSidebar }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
 
@@ -15,22 +15,22 @@ function TopBar({ searchQuery, setSearchQuery, unreadCount, notifications, setNo
 
   return (
     <header className="topbar">
-      <div className="topbar-search">
-        <HiOutlineSearch className="topbar-search-icon" />
-        <input
-          type="text"
-          placeholder="Search emails by sender, subject, or content..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="topbar-left-wrapper">
+        <button className="mobile-menu-btn" onClick={toggleSidebar}>
+          <HiOutlineMenu />
+        </button>
+        <div className="topbar-search">
+          <HiOutlineSearch className="topbar-search-icon" />
+          <input
+            type="text"
+            placeholder="Search emails by sender, subject, or content..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="topbar-actions">
-        {/* Theme Toggle */}
-        <button className="topbar-btn" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-          {theme === 'dark' ? <HiOutlineSun /> : <HiOutlineMoon />}
-        </button>
-
         <div className="notification-wrapper">
           <button 
             className={`topbar-btn ${showNotifications ? 'active' : ''}`}

@@ -260,17 +260,17 @@ const sampleEmails = [
 async function seedDatabase() {
   try {
     await connectDB();
-    
+
     // Clear existing data
     await Email.deleteMany({});
     console.log('🗑️  Cleared existing emails');
 
     // Process each email through AI analysis and save
     const processedEmails = [];
-    
+
     for (const emailData of sampleEmails) {
       const analysis = AIService.analyzeEmail(emailData);
-      
+
       // Random dates within the past 30 days
       const daysAgo = Math.floor(Math.random() * 30);
       const hoursAgo = Math.floor(Math.random() * 24);
@@ -301,9 +301,9 @@ async function seedDatabase() {
     }
 
     await Email.insertMany(processedEmails);
-    
+
     console.log(`\n✅ Successfully seeded ${processedEmails.length} emails!\n`);
-    
+
     // Display summary
     const sentimentCounts = {};
     const priorityCounts = {};
@@ -311,12 +311,12 @@ async function seedDatabase() {
       sentimentCounts[e.sentiment] = (sentimentCounts[e.sentiment] || 0) + 1;
       priorityCounts[e.priority] = (priorityCounts[e.priority] || 0) + 1;
     });
-    
+
     console.log('📊 Sentiment Distribution:');
     Object.entries(sentimentCounts).forEach(([s, c]) => console.log(`   ${s}: ${c}`));
     console.log('\n🎯 Priority Distribution:');
     Object.entries(priorityCounts).forEach(([p, c]) => console.log(`   ${p}: ${c}`));
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Seed Error:', error.message);

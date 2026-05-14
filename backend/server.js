@@ -37,8 +37,8 @@ app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: '🚀 CRM Email Intelligence API is running',
     timestamp: new Date().toISOString()
   });
